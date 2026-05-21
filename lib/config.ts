@@ -10,6 +10,7 @@ export const config = {
   bookshelfDir: expandHome(process.env.BOOKSHELF_DIR ?? "~/BookShelf"),
   donorKey: process.env.AA_DONOR_KEY ?? "",
   baseUrl: process.env.AA_BASE_URL ?? "https://annas-archive.gl",
+  libraryName: process.env.LIBRARY_NAME?.trim() || "Richmond",
 };
 
 export function coversDir(): string {

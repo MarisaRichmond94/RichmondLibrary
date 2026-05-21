@@ -35,7 +35,7 @@ export default function Discover() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 min-h-[calc(100vh-8rem)]">
       <h1 className="text-2xl font-semibold tracking-tight">Discover</h1>
       <SearchBar
         title={title}
@@ -79,7 +79,7 @@ export default function Discover() {
 
 function EmptySearch() {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 py-24 text-text-secondary">
+    <div className="flex flex-1 flex-col items-center justify-center gap-3 text-text-secondary">
       <Search size={40} />
       <div className="text-sm">Search Anna&apos;s Archive for an EPUB.</div>
       <div className="text-xs text-text-tertiary max-w-sm text-center">

@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BookOpen, Search } from "lucide-react";
 import DownloadsTray from "@/components/DownloadsTray";
+import { config } from "@/lib/config";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Richmond Library",
+  title: `${config.libraryName} Library`,
   description: "Your personal digital library",
 };
 
@@ -22,7 +23,7 @@ export default function RootLayout({
             <Link href="/" className="flex items-center gap-2.5 font-semibold tracking-tight text-xl">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/logo.svg" alt="" aria-hidden="true" className="h-10 w-auto" />
-              Richmond Library
+              {config.libraryName} Library
             </Link>
             <nav className="flex items-center gap-1 text-sm">
               <NavLink href="/" icon={<Search size={14} />} label="Discover" />

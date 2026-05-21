@@ -25,38 +25,44 @@ export default function DownloadsTray() {
 
   return (
     <div className="fixed bottom-4 right-4 z-40 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-border-subtle bg-bg-1/95 backdrop-blur-xl shadow-2xl overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setCollapsed((v) => !v)}
-        className="w-full flex items-center justify-between px-4 py-2.5 border-b border-border-subtle hover:bg-bg-2 transition-colors text-left"
-      >
-        <div className="flex items-center gap-2">
+      <div className="flex items-center border-b border-border-subtle">
+        <button
+          type="button"
+          onClick={() => setCollapsed((v) => !v)}
+          className="flex-1 flex items-center gap-2 px-4 py-2.5 hover:bg-bg-2 transition-colors text-left"
+        >
           <span className="text-sm font-medium">Downloads</span>
           {active > 0 ? (
             <span className="text-xs text-text-tertiary">{active} in progress</span>
           ) : (
             <span className="text-xs text-text-tertiary">{done} done</span>
           )}
-        </div>
-        <div className="flex items-center gap-1">
+        </button>
+        <div className="flex items-center gap-1 pr-3">
           {done > 0 ? (
             <button
               type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                clearFinished();
-              }}
+              onClick={clearFinished}
               className="text-[11px] text-text-tertiary hover:text-text-primary px-2 py-1 rounded hover:bg-bg-3 transition-colors"
             >
               Clear done
             </button>
           ) : null}
-          <ChevronDown
-            size={14}
-            className={"text-text-tertiary transition-transform " + (collapsed ? "" : "rotate-180")}
-          />
+          <button
+            type="button"
+            onClick={() => setCollapsed((v) => !v)}
+            aria-label={collapsed ? "Expand" : "Collapse"}
+            className="p-1 rounded hover:bg-bg-3 transition-colors"
+          >
+            <ChevronDown
+              size={14}
+              className={
+                "text-text-tertiary transition-transform " + (collapsed ? "" : "rotate-180")
+              }
+            />
+          </button>
         </div>
-      </button>
+      </div>
       {collapsed ? null : (
         <ul className="max-h-80 overflow-y-auto divide-y divide-border-subtle">
           {entries.map((e) => (
