@@ -52,8 +52,11 @@ export function getSnapshot(): State {
   return state;
 }
 
+// Must return the same reference every call so React doesn't perceive a "change"
+// on each render and trigger an infinite render loop on the server / first client paint.
+const SERVER_SNAPSHOT: State = { entries: [] };
 export function getServerSnapshot(): State {
-  return { entries: [] };
+  return SERVER_SNAPSHOT;
 }
 
 export function removeEntry(id: string) {
