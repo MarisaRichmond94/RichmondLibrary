@@ -53,6 +53,7 @@ export async function POST(req: Request) {
 
   // Fallback: open the URL in the user's default browser and watch ~/Downloads.
   const watchId = await startBrowserWatch({
+    md5: body.md5,
     url: body.option.url,
     desiredFilename: filename,
   });

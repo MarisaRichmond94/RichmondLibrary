@@ -8,6 +8,7 @@ import { sanitizeFilename } from "./library";
 
 export type WatchState = {
   id: string;
+  md5: string;
   startedAt: number;
   destDir: string;
   desiredFilename: string;
@@ -37,6 +38,7 @@ async function listEpubs(dir: string): Promise<string[]> {
 }
 
 export async function startBrowserWatch(opts: {
+  md5: string;
   url: string;
   desiredFilename: string;
 }): Promise<string> {
@@ -45,6 +47,7 @@ export async function startBrowserWatch(opts: {
   const initial = new Set(await listEpubs(dir));
   watches.set(id, {
     id,
+    md5: opts.md5.toLowerCase(),
     startedAt: Date.now(),
     destDir: dir,
     desiredFilename: opts.desiredFilename,
@@ -61,6 +64,11 @@ export async function startBrowserWatch(opts: {
   return id;
 }
 
+async function md5File(p: string): Promise<string> {
+  const buf = await fs.readFile(p);
+  return crypto.createHash("md5").update(buf).digest("hex");
+}
+
 export async function pollWatch(id: string): Promise<{ phase: "watching" } | { phase: "imported"; path: string } | { phase: "unknown" }> {
   const w = watches.get(id);
   if (!w) return { phase: "unknown" };
@@ -73,30 +81,39 @@ export async function pollWatch(id: string): Promise<{ phase: "watching" } | { p
   const fresh = current.filter((n) => !w.initialSet.has(n));
   if (fresh.length === 0) return { phase: "watching" };
 
-  // Pick the most recently modified fresh epub
-  let pick: { name: string; mtimeMs: number } | null = null;
+  // Anna's Archive identifies books by file md5, so match arriving files to
+  // their watch by hash. Newest fresh files first to minimize wait when
+  // multiple downloads land at once.
+  const stats: Array<{ name: string; mtimeMs: number }> = [];
   for (const n of fresh) {
-    const s = await fs.stat(path.join(w.destDir, n));
-    if (!pick || s.mtimeMs > pick.mtimeMs) pick = { name: n, mtimeMs: s.mtimeMs };
+    const s = await fs.stat(path.join(w.destDir, n)).catch(() => null);
+    if (s) stats.push({ name: n, mtimeMs: s.mtimeMs });
   }
-  if (!pick) return { phase: "watching" };
+  stats.sort((a, b) => b.mtimeMs - a.mtimeMs);
 
-  // Make sure the file is fully written: size should be stable across a short delay
-  const src = path.join(w.destDir, pick.name);
-  const s1 = await fs.stat(src);
-  await new Promise((r) => setTimeout(r, 600));
-  const s2 = await fs.stat(src);
-  if (s1.size !== s2.size || s2.size === 0) return { phase: "watching" };
+  for (const { name } of stats) {
+    const src = path.join(w.destDir, name);
+    // Make sure the file is fully written: size should be stable across a short delay
+    const s1 = await fs.stat(src).catch(() => null);
+    if (!s1) continue;
+    await new Promise((r) => setTimeout(r, 600));
+    const s2 = await fs.stat(src).catch(() => null);
+    if (!s2 || s1.size !== s2.size || s2.size === 0) continue;
 
-  await fs.mkdir(config.bookshelfDir, { recursive: true });
-  const dest = path.join(config.bookshelfDir, w.desiredFilename);
-  await fs.rename(src, dest).catch(async () => {
-    // Cross-device fallback
-    await fs.copyFile(src, dest);
-    await fs.unlink(src);
-  });
-  w.importedPath = dest;
-  return { phase: "imported", path: dest };
+    const hash = await md5File(src).catch(() => "");
+    if (hash !== w.md5) continue;
+
+    await fs.mkdir(config.bookshelfDir, { recursive: true });
+    const dest = path.join(config.bookshelfDir, w.desiredFilename);
+    await fs.rename(src, dest).catch(async () => {
+      // Cross-device fallback
+      await fs.copyFile(src, dest);
+      await fs.unlink(src);
+    });
+    w.importedPath = dest;
+    return { phase: "imported", path: dest };
+  }
+  return { phase: "watching" };
 }
 
 export async function directDownload(opts: {

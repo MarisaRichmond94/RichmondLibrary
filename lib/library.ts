@@ -12,6 +12,7 @@ export type LibraryBook = {
   authors: string[];
   genres: string[];
   hasCover: boolean;
+  coverVersion: number;
   size: number;
 };
 
@@ -70,7 +71,9 @@ export async function listLibrary(): Promise<LibraryBook[]> {
     const full = path.join(config.bookshelfDir, e.name);
     const id = idForPath(full);
     const coverFile = coverPathFor(id);
-    let hasCoverFile = await fileExists(coverFile);
+    const coverStat = await fs.stat(coverFile).catch(() => null);
+    let hasCoverFile = coverStat !== null;
+    let coverVersion = coverStat ? Math.floor(coverStat.mtimeMs) : 0;
 
     let title = e.name.replace(/\.epub$/i, "");
     let authors: string[] = [];
@@ -80,13 +83,19 @@ export async function listLibrary(): Promise<LibraryBook[]> {
     try {
       const stat = await fs.stat(full);
       size = stat.size;
+      // Refresh the cached cover if the EPUB has been overwritten since the
+      // cover was extracted (e.g. a stale cover left over from a misnamed
+      // download that was later replaced with the correct file).
+      const coverIsStale = coverStat !== null && stat.mtimeMs > coverStat.mtimeMs;
       const data = await readEpub(full);
       if (data.title) title = data.title;
       authors = Array.from(new Set(data.authors.map(normalizeAuthor)));
       genres = data.genres;
-      if (!hasCoverFile && data.coverBuffer) {
+      if ((!hasCoverFile || coverIsStale) && data.coverBuffer) {
         await fs.writeFile(coverFile, data.coverBuffer);
+        const fresh = await fs.stat(coverFile).catch(() => null);
         hasCoverFile = true;
+        coverVersion = fresh ? Math.floor(fresh.mtimeMs) : Date.now();
       }
     } catch (err) {
       console.warn(`[library] Failed to parse ${e.name}:`, (err as Error).message);
@@ -100,6 +109,7 @@ export async function listLibrary(): Promise<LibraryBook[]> {
       authors,
       genres,
       hasCover: hasCoverFile,
+      coverVersion,
       size,
     });
   }

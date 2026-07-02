@@ -106,7 +106,7 @@ export default function LibraryPage() {
               key={b.id}
               title={b.title}
               authors={b.authors}
-              coverUrl={b.hasCover ? `/api/cover/${b.id}` : undefined}
+              coverUrl={b.hasCover ? `/api/cover/${b.id}?v=${b.coverVersion}` : undefined}
               onClick={() => setSelected(b)}
             />
           ))}
@@ -142,7 +142,7 @@ function DetailDrawer({ book, onClose }: { book: LibraryBook; onClose: () => voi
           {book.hasCover ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={`/api/cover/${book.id}`}
+              src={`/api/cover/${book.id}?v=${book.coverVersion}`}
               alt={book.title}
               className="object-cover w-full h-full"
             />
